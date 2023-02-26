@@ -37,12 +37,12 @@ type VmStopResponse struct {
 	Error     error
 }
 
-type VmSuspendResponse struct {
+type VmDeleteResponse struct {
 	VmId      string
 	IsSuccess bool
 	Error     error
 }
 
-type VmSuspendRequest struct {
+type VmDeleteRequest struct {
 	VmId string
 }

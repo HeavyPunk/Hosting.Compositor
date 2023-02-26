@@ -3,6 +3,7 @@ package vm_service
 import (
 	"context"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -20,10 +21,7 @@ func Init() *VmServiceContext {
 }
 
 func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateResponse {
-	cli := hypContext.client
-	if cli == nil {
-		panic("Hypervisor client is nil")
-	}
+	cli := extractClient(hypContext)
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
@@ -42,9 +40,29 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 }
 
 func (hypContext *VmServiceContext) StopVm(request VmStopRequest) VmStopResponse {
-	panic("Not implemented")
+	cli := extractClient(hypContext)
+	err := cli.ContainerStop(context.Background(), request.VmId, container.StopOptions{})
+	return VmStopResponse{
+		VmId:      request.VmId,
+		IsSuccess: err == nil,
+		Error:     err,
+	}
 }
 
-func (hypContext *VmServiceContext) SuspendVm(request VmSuspendRequest) VmSuspendResponse {
-	panic("Not implemented")
+func (hypContext *VmServiceContext) DeleteVm(request VmDeleteRequest) VmDeleteResponse {
+	cli := extractClient(hypContext)
+	err := cli.ContainerRemove(context.Background(), request.VmId, types.ContainerRemoveOptions{})
+	return VmDeleteResponse{
+		VmId:      request.VmId,
+		IsSuccess: err == nil,
+		Error:     err,
+	}
+}
+
+func extractClient(hypContext *VmServiceContext) *client.Client {
+	cli := hypContext.client
+	if cli == nil {
+		panic("Hypervisor client is nil")
+	}
+	return cli
 }
