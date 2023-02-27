@@ -19,6 +19,9 @@ var portCache = make(map[int]bool)
 var updatePeriod = 3 * time.Minute
 var lastUpdateTimestamp = time.Now()
 
+var minPort = 10001
+var maxPort = 10100
+
 func OccupyPort(port int) error {
 	if time.Now().Sub(lastUpdateTimestamp) > updatePeriod {
 		portCache = Update()
@@ -36,8 +39,18 @@ func ReleasePort(port int) error {
 	}
 }
 
+func GetRandomFreePort() (int, error) {
+	for i := minPort; i < maxPort; i++ {
+		if IsFreePort(i) {
+			return i, nil
+		}
+	}
+	return -1, errors.New("All available ports are busy")
+}
+
 func IsFreePort(port int) bool {
-	return portCache[port]
+	isFree, ok := portCache[port]
+	return isFree || !ok
 }
 
 func checkForHardwarePort(port int) bool {

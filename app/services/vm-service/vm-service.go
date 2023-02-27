@@ -7,6 +7,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -25,7 +26,8 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
-			Image: request.VmImage,
+			Image:        request.VmImage,
+			ExposedPorts: nat.PortSet{},
 		},
 		&container.HostConfig{},
 		&network.NetworkingConfig{},

@@ -9,7 +9,7 @@ type VmServiceContext struct {
 type VmCreateRequest struct {
 	VmName        string
 	VmImage       string
-	VmExposePorts []int
+	VmExposePorts []string //should has format like "25565/tcp" or "19132/udp"
 }
 
 type VmCreateResponse struct {
