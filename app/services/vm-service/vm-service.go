@@ -3,6 +3,7 @@ package vm_service
 import (
 	"container/list"
 	"context"
+	"errors"
 	"log"
 	"net"
 
@@ -70,6 +71,14 @@ func getHostPorts(cli *client.Client, vmId string) ([]string, error) {
 		l.PushBack(hostPort.Port())
 	}
 	res := make([]string, l.Len())
+	for p, i := l.Front(), 0; p != nil; p, i = p.Next(), i+1 {
+		v, ok := p.Value.(string)
+		if ok {
+			res[i] = v
+		} else {
+			return nil, errors.New("Port list contains no-port value")
+		}
+	}
 	return res, nil
 }
 
