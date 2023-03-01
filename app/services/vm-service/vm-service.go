@@ -29,7 +29,11 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 			Image:        request.VmImage,
 			ExposedPorts: nat.PortSet{},
 		},
-		&container.HostConfig{},
+		&container.HostConfig{
+			Resources: container.Resources{
+				Memory:     request.VmAvailableRamBytes,
+				MemorySwap: request.VmAvailableSwapBytes,
+			}},
 		&network.NetworkingConfig{},
 		&v1.Platform{},
 		request.VmName,
@@ -38,6 +42,19 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 		VmId:      resp.ID,
 		IsSuccess: err == nil,
 		Error:     err,
+	}
+}
+
+func (hypContext *VmServiceContext) RunVm(request VmRunRequest) VmRunResponse {
+	cli := extractClient(hypContext)
+	err := cli.ContainerStart(
+		context.Background(),
+		request.VmId,
+		types.ContainerStartOptions{},
+	)
+	return VmRunResponse{
+		VmId:  request.VmId,
+		Error: err,
 	}
 }
 

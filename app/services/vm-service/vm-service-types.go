@@ -7,9 +7,12 @@ type VmServiceContext struct {
 }
 
 type VmCreateRequest struct {
-	VmName        string
-	VmImage       string
-	VmExposePorts []string //should has format like "25565/tcp" or "19132/udp"
+	VmName               string
+	VmImage              string
+	VmAvailableDiskBytes int64
+	VmAvailableRamBytes  int64
+	VmAvailableSwapBytes int64
+	VmExposePorts        []string //should has format like "25565/tcp" or "19132/udp"
 }
 
 type VmCreateResponse struct {
@@ -19,12 +22,12 @@ type VmCreateResponse struct {
 }
 
 type VmRunRequest struct {
-	VmId          string
-	AvailableRam  uint
-	AvailableSwap uint
+	VmId string
 }
 
 type VmRunResponse struct {
+	VmId  string
+	Error error
 }
 
 type VmStopRequest struct {
