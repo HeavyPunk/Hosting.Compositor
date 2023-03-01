@@ -66,7 +66,7 @@ func getHostPorts(cli *client.Client, vmId string) ([]string, error) {
 		return nil, err
 	}
 	l := list.New()
-	for hostPort, _ := range containerInfo.NetworkSettings.Ports {
+	for hostPort := range containerInfo.NetworkSettings.Ports {
 		l.PushBack(hostPort.Port())
 	}
 	res := make([]string, l.Len())
