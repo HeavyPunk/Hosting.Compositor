@@ -1,7 +1,10 @@
 package vm_service
 
 import (
+	"container/list"
 	"context"
+	"log"
+	"net"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -45,6 +48,31 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 	}
 }
 
+func getOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
+}
+
+func getHostPorts(cli *client.Client, vmId string) ([]string, error) {
+	containerInfo, err := cli.ContainerInspect(context.Background(), vmId)
+	if err != nil {
+		return nil, err
+	}
+	l := list.New()
+	for hostPort, _ := range containerInfo.NetworkSettings.Ports {
+		l.PushBack(hostPort.Port())
+	}
+	res := make([]string, l.Len())
+	return res, nil
+}
+
 func (hypContext *VmServiceContext) RunVm(request VmRunRequest) VmRunResponse {
 	cli := extractClient(hypContext)
 	err := cli.ContainerStart(
@@ -52,9 +80,20 @@ func (hypContext *VmServiceContext) RunVm(request VmRunRequest) VmRunResponse {
 		request.VmId,
 		types.ContainerStartOptions{},
 	)
+
+	ports, err := getHostPorts(cli, request.VmId)
+	if err != nil {
+		return VmRunResponse{
+			VmId:  request.VmId,
+			Error: err,
+		}
+	}
+
 	return VmRunResponse{
-		VmId:  request.VmId,
-		Error: err,
+		VmId:          request.VmId,
+		HostIp:        getOutboundIP().String(),
+		ExternalPorts: ports,
+		Error:         err,
 	}
 }
 

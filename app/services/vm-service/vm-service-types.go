@@ -26,8 +26,10 @@ type VmRunRequest struct {
 }
 
 type VmRunResponse struct {
-	VmId  string
-	Error error
+	VmId          string
+	Error         error
+	HostIp        string
+	ExternalPorts []string
 }
 
 type VmStopRequest struct {

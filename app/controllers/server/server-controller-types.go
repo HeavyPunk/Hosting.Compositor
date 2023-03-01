@@ -18,9 +18,9 @@ type StartServerRequest struct {
 }
 
 type StartServerResponse struct {
-	VmId        string `json:"vm-id"`
-	VmWhiteIp   string `json:"ip"`
-	VmWhitePort string `json:"port"`
+	VmId         string   `json:"vm-id"`
+	VmWhiteIp    string   `json:"ip"`
+	VmWhitePorts []string `json:"ports"`
 }
 
 type StopServerRequest struct {

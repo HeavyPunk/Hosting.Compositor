@@ -39,7 +39,13 @@ func StartServer(c *gin.Context) {
 		return
 	}
 	vmService := vm_service.Init()
-	vmService.RunVm(vm_service.VmRunRequest{
+	resp := vmService.RunVm(vm_service.VmRunRequest{
 		VmId: request.VmId,
 	})
+	result := StartServerResponse{
+		VmId:         resp.VmId,
+		VmWhiteIp:    resp.HostIp,
+		VmWhitePorts: resp.ExternalPorts,
+	}
+	c.JSON(http.StatusOK, result)
 }
