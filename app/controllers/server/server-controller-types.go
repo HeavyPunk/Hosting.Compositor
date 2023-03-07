@@ -30,3 +30,11 @@ type StopServerRequest struct {
 type StopServerResponse struct {
 	Success bool `json:"success"`
 }
+
+type RemoveServerRequest struct {
+	VmId string `json:"vm-id"`
+}
+
+type RemoveServerResponse struct {
+	Success bool `json:"success"`
+}

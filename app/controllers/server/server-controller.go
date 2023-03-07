@@ -49,3 +49,35 @@ func StartServer(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result)
 }
+
+func StopServer(c *gin.Context) {
+	var request StopServerRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	vmService := vm_service.Init()
+	resp := vmService.StopVm(vm_service.VmStopRequest{
+		VmId: request.VmId,
+	})
+	result := StopServerResponse{
+		Success: resp.IsSuccess,
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func DeleteServer(c *gin.Context) {
+	var request RemoveServerRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	vmService := vm_service.Init()
+	resp := vmService.DeleteVm(vm_service.VmDeleteRequest{
+		VmId: request.VmId,
+	})
+	result := RemoveServerResponse{
+		Success: resp.VmId != "",
+	}
+	c.JSON(http.StatusOK, result)
+}

@@ -16,6 +16,9 @@ func main() {
 	{
 		serGroup.GET("/list", controller_server.GetServersList)
 		serGroup.POST("/create", controller_server.CreateServer)
+		serGroup.PUT("/start", controller_server.StartServer)
+		serGroup.PUT("/stop", controller_server.StopServer)
+		serGroup.DELETE("/remove", controller_server.DeleteServer)
 	}
 	r.Run(":" + fmt.Sprint(config.Socket.Port))
 }
