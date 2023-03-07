@@ -11,5 +11,14 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Output of build app
+build/
+
+# Output of go build
+compositor
+
+# VSCode's dir
+.vscode/
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
