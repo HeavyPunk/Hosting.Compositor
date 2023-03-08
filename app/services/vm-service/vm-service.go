@@ -6,6 +6,11 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strconv"
+	"strings"
+
+	ports_service "simple-hosting/compositor/app/services/ports-service"
+	tools_sequence "simple-hosting/go-commons/tools/sequence"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -25,19 +30,58 @@ func Init() *VmServiceContext {
 	}
 }
 
+func portsArrToMap(ports []string) map[nat.Port]struct{} {
+	res := tools_sequence.ToMap(
+		ports,
+		func(p string) nat.Port {
+			return nat.Port(p)
+		},
+		func(p string) struct{} {
+			return struct{}{}
+		},
+	)
+	return res
+}
+
+func portsArrToPortBindings(ports []string) nat.PortMap {
+	res := tools_sequence.ToMap(
+		ports,
+		func(p string) nat.Port {
+			return nat.Port(p)
+		},
+		func(p string) []nat.PortBinding {
+			port_str := strings.Split(p, "/")[0]
+			port, err := strconv.Atoi(port_str)
+			if err != nil {
+				panic(err)
+			}
+			red, err := ports_service.CreatePortRedirect(port)
+			if err != nil {
+				panic(err)
+			}
+			arr := make([]nat.PortBinding, 1)
+			arr[0] = nat.PortBinding{HostIP: "", HostPort: strconv.Itoa(red.ExternalPort)}
+			return arr
+		},
+	)
+	return res
+}
+
 func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateResponse {
 	cli := extractClient(hypContext)
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
-			Image:        request.VmImage,
-			ExposedPorts: nat.PortSet{},
+			Image: request.VmImage,
+			// ExposedPorts: portsArrToMap(request.VmExposePorts),
 		},
 		&container.HostConfig{
 			Resources: container.Resources{
 				Memory:     request.VmAvailableRamBytes,
 				MemorySwap: request.VmAvailableSwapBytes,
-			}},
+			},
+			PortBindings: portsArrToPortBindings(request.VmExposePorts),
+		},
 		&network.NetworkingConfig{},
 		&v1.Platform{},
 		request.VmName,
@@ -67,8 +111,10 @@ func getHostPorts(cli *client.Client, vmId string) ([]string, error) {
 		return nil, err
 	}
 	l := list.New()
-	for hostPort := range containerInfo.NetworkSettings.Ports {
-		l.PushBack(hostPort.Port())
+	for _, bindings := range containerInfo.HostConfig.PortBindings {
+		for _, binding := range bindings {
+			l.PushBack(binding.HostPort)
+		}
 	}
 	res := make([]string, l.Len())
 	for p, i := l.Front(), 0; p != nil; p, i = p.Next(), i+1 {
