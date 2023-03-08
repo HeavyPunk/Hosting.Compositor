@@ -20,5 +20,8 @@ compositor
 # VSCode's dir
 .vscode/
 
+# Thunder client's dir
+thunder-tests/
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
