@@ -23,7 +23,7 @@ var portCache = make(map[int]bool)
 var config = file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
 
 var dbDriver = "sqlite3"
-var dbFilePath = config.Hypervisor.Services.PortsStorage.DbPath
+var dbFilePath = config.Hypervisor.Services.PortsService.DbPath
 
 var minPort = 10001
 var maxPort = 10100

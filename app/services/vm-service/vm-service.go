@@ -72,8 +72,21 @@ func portsArrToPortBindings(ports []string) nat.PortMap {
 	return res
 }
 
+func (hypContext *VmServiceContext) pullImageFromOrigin(imageId string) error {
+	cli := extractClient(hypContext)
+	_, err := cli.ImagePull(context.Background(), imageId, types.ImagePullOptions{})
+	return err
+}
+
 func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateResponse {
 	cli := extractClient(hypContext)
+	err := hypContext.pullImageFromOrigin(request.VmImage)
+	if err != nil {
+		return VmCreateResponse{
+			IsSuccess: false,
+			Error:     err,
+		}
+	}
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		&container.Config{

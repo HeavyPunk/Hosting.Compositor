@@ -8,9 +8,9 @@ type ServiceSettings struct {
 	Hypervisor struct {
 		Services struct {
 			ScriptsDir   string `yaml:"scripts-dir"`
-			PortsStorage struct {
+			PortsService struct {
 				DbPath string `yaml:"db-path"`
-			} `yaml:"ports-storage"`
+			} `yaml:"ports-service"`
 		} `yaml:"services"`
 	} `yaml:"hypervisor"`
 }
