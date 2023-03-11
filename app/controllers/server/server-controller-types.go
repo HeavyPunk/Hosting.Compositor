@@ -36,5 +36,6 @@ type RemoveServerRequest struct {
 }
 
 type RemoveServerResponse struct {
-	Success bool `json:"success"`
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
 }

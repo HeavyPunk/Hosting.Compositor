@@ -1,0 +1,6 @@
+socket:
+  port: 8080
+
+hypervisor:
+  services:
+    scripts-dir: "./"

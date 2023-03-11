@@ -76,8 +76,13 @@ func DeleteServer(c *gin.Context) {
 	resp := vmService.DeleteVm(vm_service.VmDeleteRequest{
 		VmId: request.VmId,
 	})
+	var errMesg string
+	if resp.Error != nil {
+		errMesg = resp.Error.Error()
+	}
 	result := RemoveServerResponse{
-		Success: resp.VmId != "",
+		Success: resp.IsSuccess,
+		Error:   errMesg,
 	}
 	c.JSON(http.StatusOK, result)
 }
