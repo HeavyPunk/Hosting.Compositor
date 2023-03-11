@@ -1,8 +1,9 @@
-socket:
+app:
   port: 8080
+  configuration: debug
 
 hypervisor:
   services:
-    scripts-dir: "./app/tools/scripts/"
-    ports-storage:
-      db-path: "./ports-storage.db"
+    scripts-dir: ./app/tools/scripts/
+    ports-service:
+      db-path: ./ports-storage.db

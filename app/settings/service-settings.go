@@ -1,9 +1,10 @@
 package settings
 
 type ServiceSettings struct {
-	Socket struct {
-		Port uint `yaml:"port"`
-	} `yaml:"socket"`
+	App struct {
+		Port          uint   `yaml:"port"`
+		Configuration string `yaml:"configuration"`
+	} `yaml:"app"`
 	Hypervisor struct {
 		Services struct {
 			ScriptsDir   string `yaml:"scripts-dir"`

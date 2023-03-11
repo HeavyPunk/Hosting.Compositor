@@ -1,6 +1,9 @@
-socket:
+app:
   port: 8080
+  configuration: release
 
 hypervisor:
   services:
-    scripts-dir: "./"
+    scripts-dir: ./
+    ports-service:
+      db-path: ./ports-storage.db

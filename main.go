@@ -11,14 +11,17 @@ import (
 
 func main() {
 	config := file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
+	configuration := config.App.Configuration
+
+	gin.SetMode(configuration)
 	r := gin.Default()
 	serGroup := r.Group("/server")
 	{
 		serGroup.GET("/list", controller_server.GetServersList)
 		serGroup.POST("/create", controller_server.CreateServer)
-		serGroup.PUT("/start", controller_server.StartServer)
-		serGroup.PUT("/stop", controller_server.StopServer)
-		serGroup.DELETE("/remove", controller_server.DeleteServer)
+		serGroup.POST("/start", controller_server.StartServer)
+		serGroup.POST("/stop", controller_server.StopServer)
+		serGroup.POST("/remove", controller_server.DeleteServer)
 	}
-	r.Run(":" + fmt.Sprint(config.Socket.Port))
+	r.Run(":" + fmt.Sprint(config.App.Port))
 }
