@@ -10,7 +10,9 @@ type CreateServerRequest struct {
 }
 
 type CreateServerResponse struct {
-	VmId string `json:"vm-id"`
+	VmId    string `json:"vm-id"`
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
 }
 
 type StartServerRequest struct {
@@ -21,6 +23,8 @@ type StartServerResponse struct {
 	VmId         string   `json:"vm-id"`
 	VmWhiteIp    string   `json:"ip"`
 	VmWhitePorts []string `json:"ports"`
+	Success      bool     `json:"success"`
+	Error        string   `json:"error"`
 }
 
 type StopServerRequest struct {
@@ -28,7 +32,8 @@ type StopServerRequest struct {
 }
 
 type StopServerResponse struct {
-	Success bool `json:"success"`
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
 }
 
 type RemoveServerRequest struct {

@@ -30,11 +30,12 @@ func Init() *VmServiceContext {
 	}
 }
 
-func portsArrToMap(ports []string) map[nat.Port]struct{} {
+func exposedPortsArrToMap(ports []string) map[nat.Port]struct{} {
 	res := tools_sequence.ToMap(
 		ports,
 		func(p string) nat.Port {
-			return nat.Port(p)
+			_, containerPort := findPortsInPortData(p)
+			return nat.Port(strconv.Itoa(containerPort))
 		},
 		func(p string) struct{} {
 			return struct{}{}
@@ -43,8 +44,8 @@ func portsArrToMap(ports []string) map[nat.Port]struct{} {
 	return res
 }
 
-func findPortInPortData(portData string) int { //f.e "25565/tcp" -> 25565
-	portStr := strings.Split(portData, "/")[0]
+func findPortBeforeSlash(p string) int {
+	portStr := strings.Split(p, "/")[0]
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		panic(err)
@@ -52,21 +53,32 @@ func findPortInPortData(portData string) int { //f.e "25565/tcp" -> 25565
 	return port
 }
 
+func findPortsInPortData(portData string) (int, int) { //f.e "25565/tcp" -> -1, 25565 "1234:5678/tcp" -> 1234, 5678
+	ports := strings.Split(portData, ":")
+	if len(ports) == 1 {
+		return -1, findPortBeforeSlash(ports[0])
+	}
+
+	return findPortBeforeSlash(ports[0]), findPortBeforeSlash(ports[1])
+}
+
 func portsArrToPortBindings(ports []string) nat.PortMap {
 	res := tools_sequence.ToMap(
 		ports,
 		func(p string) nat.Port {
-			return nat.Port(p)
+			_, containerPort := findPortsInPortData(p)
+			return nat.Port(strconv.Itoa(containerPort))
 		},
 		func(p string) []nat.PortBinding {
-			port := findPortInPortData(p)
-			red, err := ports_service.CreatePortRedirect(port)
+			hostPort, containerPort := findPortsInPortData(p)
+			if hostPort != -1 {
+				return []nat.PortBinding{{HostIP: "", HostPort: strconv.Itoa(hostPort)}}
+			}
+			red, err := ports_service.CreatePortRedirect(containerPort)
 			if err != nil {
 				panic(err)
 			}
-			arr := make([]nat.PortBinding, 1)
-			arr[0] = nat.PortBinding{HostIP: "", HostPort: strconv.Itoa(red.ExternalPort)}
-			return arr
+			return []nat.PortBinding{{HostIP: "", HostPort: strconv.Itoa(red.ExternalPort)}}
 		},
 	)
 	return res
@@ -87,18 +99,19 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 			Error:     err,
 		}
 	}
+	portMap := portsArrToPortBindings(request.VmExposePorts)
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
-			Image: request.VmImage,
-			// ExposedPorts: portsArrToMap(request.VmExposePorts),
+			Image:        request.VmImage,
+			ExposedPorts: exposedPortsArrToMap(request.VmExposePorts),
 		},
 		&container.HostConfig{
 			Resources: container.Resources{
 				Memory:     request.VmAvailableRamBytes,
 				MemorySwap: request.VmAvailableSwapBytes,
 			},
-			PortBindings: portsArrToPortBindings(request.VmExposePorts),
+			PortBindings: portMap,
 		},
 		&network.NetworkingConfig{},
 		&v1.Platform{},
@@ -183,6 +196,15 @@ func (hypContext *VmServiceContext) StopVm(request VmStopRequest) VmStopResponse
 func (hypContext *VmServiceContext) DeleteVm(request VmDeleteRequest) VmDeleteResponse {
 	cli := extractClient(hypContext)
 	con, err := cli.ContainerInspect(context.Background(), request.VmId)
+
+	if err != nil {
+		return VmDeleteResponse{
+			VmId:      request.VmId,
+			IsSuccess: err == nil,
+			Error:     err,
+		}
+	}
+
 	err = cli.ContainerRemove(context.Background(), request.VmId, types.ContainerRemoveOptions{})
 
 	if err != nil {
@@ -196,9 +218,10 @@ func (hypContext *VmServiceContext) DeleteVm(request VmDeleteRequest) VmDeleteRe
 	bind := con.HostConfig.PortBindings
 	for conPort, hostPorts := range bind {
 		for _, hostPort := range hostPorts {
+			_, portInData := findPortsInPortData(hostPort.HostPort)
 			if err = ports_service.ClosePortRedirect(ports_service.PortRedirect{
 				InternalPort: conPort.Int(),
-				ExternalPort: findPortInPortData(hostPort.HostPort),
+				ExternalPort: portInData,
 			}); err != nil {
 				return VmDeleteResponse{
 					VmId:      request.VmId,

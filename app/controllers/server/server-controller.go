@@ -3,6 +3,7 @@ package controller_server
 import (
 	"net/http"
 	vm_service "simple-hosting/compositor/app/services/vm-service"
+	error_utils "simple-hosting/go-commons/tools/errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +28,9 @@ func CreateServer(c *gin.Context) {
 		VmAvailableSwapBytes: request.VmAvailableSwapBytes,
 	})
 	result := CreateServerResponse{
-		VmId: response.VmId,
+		VmId:    response.VmId,
+		Success: response.IsSuccess,
+		Error:   error_utils.GetErrorStringOrDefault(response.Error, ""),
 	}
 	c.JSON(http.StatusCreated, result)
 }
@@ -46,6 +49,8 @@ func StartServer(c *gin.Context) {
 		VmId:         resp.VmId,
 		VmWhiteIp:    resp.HostIp,
 		VmWhitePorts: resp.ExternalPorts,
+		Success:      resp.Error == nil,
+		Error:        error_utils.GetErrorStringOrDefault(resp.Error, ""),
 	}
 	c.JSON(http.StatusOK, result)
 }
@@ -62,6 +67,7 @@ func StopServer(c *gin.Context) {
 	})
 	result := StopServerResponse{
 		Success: resp.IsSuccess,
+		Error:   error_utils.GetErrorStringOrDefault(resp.Error, ""),
 	}
 	c.JSON(http.StatusOK, result)
 }
@@ -76,13 +82,9 @@ func DeleteServer(c *gin.Context) {
 	resp := vmService.DeleteVm(vm_service.VmDeleteRequest{
 		VmId: request.VmId,
 	})
-	var errMesg string
-	if resp.Error != nil {
-		errMesg = resp.Error.Error()
-	}
 	result := RemoveServerResponse{
 		Success: resp.IsSuccess,
-		Error:   errMesg,
+		Error:   error_utils.GetErrorStringOrDefault(resp.Error, ""),
 	}
 	c.JSON(http.StatusOK, result)
 }
