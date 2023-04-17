@@ -11,6 +11,7 @@ type ServiceSettings struct {
 			PortsService struct {
 				DbPath string `yaml:"db-path"`
 			} `yaml:"ports-service"`
+			OutboundIP string `yaml:"outbound-ip"`
 		} `yaml:"services"`
 	} `yaml:"hypervisor"`
 }

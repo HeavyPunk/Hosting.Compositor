@@ -7,3 +7,4 @@ hypervisor:
     scripts-dir: ./app/tools/scripts/
     ports-service:
       db-path: ./ports-storage.db
+    outbound-ip: 127.0.0.1

@@ -4,12 +4,12 @@ import (
 	"container/list"
 	"context"
 	"errors"
-	"log"
-	"net"
 	"strconv"
 	"strings"
 
 	ports_service "simple-hosting/compositor/app/services/ports-service"
+	"simple-hosting/compositor/app/settings"
+	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
 	tools_sequence "simple-hosting/go-commons/tools/sequence"
 
 	"github.com/docker/docker/api/types"
@@ -19,6 +19,8 @@ import (
 	"github.com/docker/go-connections/nat"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
+
+var config = file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
 
 func Init() *VmServiceContext {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
@@ -124,16 +126,8 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 	}
 }
 
-func getOutboundIP() net.IP {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP
+func getOutboundIP() string {
+	return config.Hypervisor.Services.OutboundIP
 }
 
 func getHostPorts(cli *client.Client, vmId string) ([]string, error) {
@@ -153,7 +147,7 @@ func getHostPorts(cli *client.Client, vmId string) ([]string, error) {
 		if ok {
 			res[i] = v
 		} else {
-			return nil, errors.New("Port list contains no-port value")
+			return nil, errors.New("port list contains no-port value")
 		}
 	}
 	return res, nil
@@ -167,6 +161,10 @@ func (hypContext *VmServiceContext) RunVm(request VmRunRequest) VmRunResponse {
 		types.ContainerStartOptions{},
 	)
 
+	if err != nil {
+		return VmRunResponse{Error: err}
+	}
+
 	ports, err := getHostPorts(cli, request.VmId)
 	if err != nil {
 		return VmRunResponse{
@@ -177,7 +175,7 @@ func (hypContext *VmServiceContext) RunVm(request VmRunRequest) VmRunResponse {
 
 	return VmRunResponse{
 		VmId:          request.VmId,
-		HostIp:        getOutboundIP().String(),
+		HostIp:        getOutboundIP(),
 		ExternalPorts: ports,
 		Error:         err,
 	}
