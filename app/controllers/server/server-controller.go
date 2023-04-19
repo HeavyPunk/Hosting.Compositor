@@ -4,12 +4,22 @@ import (
 	"net/http"
 	vm_service "simple-hosting/compositor/app/services/vm-service"
 	error_utils "simple-hosting/go-commons/tools/errors"
+	tools_sequence "simple-hosting/go-commons/tools/sequence"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetServersList(c *gin.Context) {
-	c.JSON(http.StatusOK, "{}") //TODO: implement
+	vmService := vm_service.Init()
+	allVms := vmService.GetAllVms()
+	resp := GetAllResponse{
+		IsSuccess: allVms.IsSuccess,
+		Error:     error_utils.GetErrorStringOrDefault(allVms.Error, ""),
+	}
+	resp.Vms = tools_sequence.Mapper(allVms.Vms, func(u vm_service.VmListUnit) vmListUnit {
+		return vmListUnit{Names: u.Names, Id: u.Id, State: u.State, Status: u.Status}
+	})
+	c.JSON(http.StatusOK, resp)
 }
 
 func CreateServer(c *gin.Context) {

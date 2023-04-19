@@ -51,3 +51,16 @@ type VmDeleteResponse struct {
 type VmDeleteRequest struct {
 	VmId string
 }
+
+type VmListUnit struct {
+	Names  []string
+	Id     string
+	State  string
+	Status string
+}
+
+type VmListAllResponse struct {
+	Vms       []VmListUnit
+	IsSuccess bool
+	Error     error
+}

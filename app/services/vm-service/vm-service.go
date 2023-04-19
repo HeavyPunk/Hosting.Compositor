@@ -4,12 +4,15 @@ import (
 	"container/list"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	ports_service "simple-hosting/compositor/app/services/ports-service"
 	"simple-hosting/compositor/app/settings"
 	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
+	tools_retry "simple-hosting/go-commons/tools/retry"
 	tools_sequence "simple-hosting/go-commons/tools/sequence"
 
 	"github.com/docker/docker/api/types"
@@ -92,8 +95,25 @@ func (hypContext *VmServiceContext) pullImageFromOrigin(imageId string) error {
 	return err
 }
 
+func (hypContext *VmServiceContext) GetAllVms() VmListAllResponse {
+	cli := extractClient(hypContext)
+	resp, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
+	if err != nil {
+		return VmListAllResponse{IsSuccess: false, Error: err}
+	}
+	units := tools_sequence.Mapper(resp, func(c types.Container) VmListUnit {
+		return VmListUnit{Names: c.Names, Id: c.ID, State: c.State, Status: c.Status}
+	})
+	return VmListAllResponse{
+		Vms:       units,
+		IsSuccess: true,
+		Error:     nil,
+	}
+}
+
 func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateResponse {
 	cli := extractClient(hypContext)
+	fmt.Printf("Client created")
 	err := hypContext.pullImageFromOrigin(request.VmImage)
 	if err != nil {
 		return VmCreateResponse{
@@ -101,6 +121,30 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 			Error:     err,
 		}
 	}
+	fmt.Printf("Error when pulling image: %s", err)
+
+	delay, _ := time.ParseDuration("5s")
+	resp, err := tools_retry.Retry(
+		func() (container.CreateResponse, error) {
+			return containerCreate(cli, request)
+		},
+		func(r container.CreateResponse, e error) bool {
+			return e == nil && r.ID != ""
+		},
+		config.Hypervisor.Services.ContainerCreateAttempts,
+		delay,
+		nil,
+	)
+
+	fmt.Printf("Error when creating container: %s", err)
+	return VmCreateResponse{
+		VmId:      resp.ID,
+		IsSuccess: err == nil,
+		Error:     err,
+	}
+}
+
+func containerCreate(cli *client.Client, request VmCreateRequest) (container.CreateResponse, error) {
 	portMap := portsArrToPortBindings(request.VmExposePorts)
 	resp, err := cli.ContainerCreate(
 		context.Background(),
@@ -119,11 +163,7 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 		&v1.Platform{},
 		request.VmName,
 	)
-	return VmCreateResponse{
-		VmId:      resp.ID,
-		IsSuccess: err == nil,
-		Error:     err,
-	}
+	return resp, err
 }
 
 func getOutboundIP() string {

@@ -44,3 +44,16 @@ type RemoveServerResponse struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error"`
 }
+
+type vmListUnit struct {
+	Names  []string `json:"names"`
+	Id     string   `json:"id"`
+	State  string   `json:"state"`
+	Status string   `json:"status"`
+}
+
+type GetAllResponse struct {
+	Vms       []vmListUnit `json:"vm-list"`
+	IsSuccess bool         `json:"success"`
+	Error     string       `json:"error"`
+}
