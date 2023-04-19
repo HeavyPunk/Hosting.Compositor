@@ -1,6 +1,7 @@
 app:
   port: 8080
   configuration: debug
+  api-key: compositor
 
 hypervisor:
   services:

@@ -4,6 +4,7 @@ type ServiceSettings struct {
 	App struct {
 		Port          uint   `yaml:"port"`
 		Configuration string `yaml:"configuration"`
+		ApiKey        string `yaml:"api-key"`
 	} `yaml:"app"`
 	Hypervisor struct {
 		Services struct {

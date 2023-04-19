@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	controller_server "simple-hosting/compositor/app/controllers/server"
+	middleware_auth "simple-hosting/compositor/app/middlewares/auth"
 	"simple-hosting/compositor/app/settings"
 	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
 
@@ -15,6 +16,9 @@ func main() {
 
 	gin.SetMode(configuration)
 	r := gin.Default()
+
+	r.Use(middleware_auth.CheckAuth)
+
 	serGroup := r.Group("/server")
 	{
 		serGroup.GET("/list", controller_server.GetServersList)
