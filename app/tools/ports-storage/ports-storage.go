@@ -26,7 +26,7 @@ var dbDriver = "sqlite3"
 var dbFilePath = config.Hypervisor.Services.PortsService.DbPath
 
 var minPort = 10001
-var maxPort = 10100
+var maxPort = 10999
 
 func OccupyPort(port int) error {
 	if !IsFreePort(port) {

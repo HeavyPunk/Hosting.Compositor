@@ -113,7 +113,7 @@ func (hypContext *VmServiceContext) GetAllVms() VmListAllResponse {
 
 func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateResponse {
 	cli := extractClient(hypContext)
-	fmt.Printf("Client created")
+	fmt.Printf("Client created\n")
 	err := hypContext.pullImageFromOrigin(request.VmImage)
 	if err != nil {
 		return VmCreateResponse{
@@ -121,7 +121,7 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 			Error:     err,
 		}
 	}
-	fmt.Printf("Error when pulling image: %s", err)
+	fmt.Printf("Error when pulling image: %s\n", err)
 
 	delay, _ := time.ParseDuration("5s")
 	resp, err := tools_retry.Retry(
@@ -129,14 +129,14 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 			return containerCreate(cli, request)
 		},
 		func(r container.CreateResponse, e error) bool {
-			return e == nil && r.ID != ""
+			return r.ID != ""
 		},
 		config.Hypervisor.Services.ContainerCreateAttempts,
 		delay,
 		nil,
 	)
 
-	fmt.Printf("Error when creating container: %s", err)
+	fmt.Printf("Error when creating container: %s\n", err)
 	return VmCreateResponse{
 		VmId:      resp.ID,
 		IsSuccess: err == nil,
