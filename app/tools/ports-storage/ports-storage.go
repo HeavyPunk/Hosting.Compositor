@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"simple-hosting/compositor/app/settings"
-	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
 	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -20,7 +19,7 @@ var Free = true
 var Busy = false
 
 var portCache = make(map[int]bool)
-var config = file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
+var config = settings.GetServiceSettings()
 
 var dbDriver = "sqlite3"
 var dbFilePath = config.Hypervisor.Services.PortsService.DbPath

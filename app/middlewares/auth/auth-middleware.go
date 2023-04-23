@@ -3,12 +3,11 @@ package middleware_auth
 import (
 	"net/http"
 	"simple-hosting/compositor/app/settings"
-	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
 
 	"github.com/gin-gonic/gin"
 )
 
-var config = file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
+var config = settings.GetServiceSettings()
 
 func CheckAuth(ctx *gin.Context) {
 	apikey := ctx.GetHeader("X-ApiKey")
