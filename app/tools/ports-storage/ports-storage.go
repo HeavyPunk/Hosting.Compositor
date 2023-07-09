@@ -1,6 +1,7 @@
 package ports_storage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/sync/semaphore"
 )
 
 // Работает только с TCP (в UDP пока нет смысла)
@@ -15,24 +17,45 @@ import (
 // Потом переедет в sqlite
 // Потоконебезопасно!!!
 
-var Free = true
-var Busy = false
+type PortsStorageContext struct {
+	portCache  map[int]bool
+	config     settings.ServiceSettings
+	dbDriver   string
+	dbFilePath string
+	minPort    int
+	maxPort    int
+	sem        *semaphore.Weighted
+	ctx        context.Context
+}
 
-var portCache = make(map[int]bool)
-var config = settings.GetServiceSettings()
+var (
+	Free = true
+	Busy = false
+)
 
-var dbDriver = "sqlite3"
-var dbFilePath = config.Hypervisor.Services.PortsService.DbPath
-
-var minPort = 10001
-var maxPort = 10999
-
-func OccupyPort(port int) error {
-	if !IsFreePort(port) {
-		return errors.New("Port " + strconv.Itoa(port) + " already occupied")
+func Init(config settings.ServiceSettings) *PortsStorageContext {
+	return &PortsStorageContext{
+		portCache:  make(map[int]bool),
+		config:     config,
+		dbDriver:   config.Hypervisor.Services.PortsService.DbDriver,
+		dbFilePath: config.Hypervisor.Services.PortsService.DbPath,
+		minPort:    config.Hypervisor.Services.PortsService.MinPort,
+		maxPort:    config.Hypervisor.Services.PortsService.MaxPort,
+		sem:        semaphore.NewWeighted(1),
+		ctx:        context.TODO(),
 	}
-	portCache[port] = Busy
-	db, err := sql.Open(dbDriver, dbFilePath)
+}
+
+func (context *PortsStorageContext) occupyPort(port int) error {
+	isFree, err := context.isFreePort(port)
+	if err != nil {
+		return err
+	}
+	if !isFree {
+		return errors.New("port " + strconv.Itoa(port) + "is already occupied")
+	}
+	context.portCache[port] = Busy
+	db, err := sql.Open(context.dbDriver, context.dbFilePath)
 	if err != nil {
 		return err
 	}
@@ -44,9 +67,9 @@ func OccupyPort(port int) error {
 	return nil
 }
 
-func ReleasePort(port int) error {
-	portCache[port] = Free
-	db, err := sql.Open(dbDriver, dbFilePath)
+func (context *PortsStorageContext) ReleasePort(port int) error {
+	context.portCache[port] = Free
+	db, err := sql.Open(context.dbDriver, context.dbFilePath)
 	if err != nil {
 		return err
 	}
@@ -55,36 +78,48 @@ func ReleasePort(port int) error {
 	return err
 }
 
-func GetRandomFreePort() (int, error) {
-	for i := minPort; i < maxPort; i++ {
-		if IsFreePort(i) {
-			err := OccupyPort(i)
+func (context *PortsStorageContext) GetRandomFreePort() (int, error) {
+	if err := context.sem.Acquire(context.ctx, 1); err != nil {
+		return -1, errors.New("acquire semaphore failed")
+	}
+	defer context.sem.Release(1)
+
+	for i := context.minPort; i < context.maxPort; i++ {
+		isFree, err := context.isFreePort(i)
+		if err != nil {
+			return i, err
+		}
+		if isFree {
+			err := context.occupyPort(i)
 			return i, err
 		}
 	}
-	return -1, errors.New("All available ports are busy")
+	return -1, errors.New("all available ports are busy")
 }
 
-func IsFreePort(port int) bool {
-	isFree, ok := portCache[port]
+func (context *PortsStorageContext) isFreePort(port int) (bool, error) {
+	isFree, ok := context.portCache[port]
 	portFreeInCache := isFree || !ok
 	if portFreeInCache {
-		portIsFree := checkInDatabase(port)
-		portCache[port] = portIsFree
-		return portIsFree
+		portIsFree, err := context.checkInDatabase(port)
+		if err != nil {
+			return false, err
+		}
+		context.portCache[port] = portIsFree
+		return portIsFree, nil
 	}
-	return portFreeInCache
+	return portFreeInCache, nil
 }
 
-func checkInDatabase(port int) bool {
-	db, err := sql.Open(dbDriver, dbFilePath)
+func (context *PortsStorageContext) checkInDatabase(port int) (bool, error) {
+	db, err := sql.Open(context.dbDriver, context.dbFilePath)
 	if err != nil {
-		panic(err)
+		return false, err
 	}
 	defer db.Close()
 	res, err := db.Query("select port from ports where port=$1", port)
 	if err != nil {
-		panic(err)
+		return false, err
 	}
 	defer res.Close()
 	for res.Next() {
@@ -94,38 +129,8 @@ func checkInDatabase(port int) bool {
 			continue
 		}
 		if p == port {
-			return Busy
+			return Busy, nil
 		}
 	}
-	return Free
+	return Free, nil
 }
-
-// func checkForHardwarePort(port int) bool {
-// 	cmd := exec.Command("bash", config.Hypervisor.Services.ScriptsDir+"print-listen-ports.sh")
-// 	stdout, err := cmd.Output()
-// 	if err != nil {
-// 		fmt.Println(err.Error())
-// 		log.Fatal(err)
-// 	}
-// 	busyPorts := extractPortsFromLsofOut(stdout)
-// 	for _, el := range busyPorts {
-// 		if el == port {
-// 			return Busy
-// 		}
-// 	}
-// 	return Free
-// }
-
-// func Update() map[int]bool {
-// 	cmd := exec.Command("netstat", "-t", "-l")
-// 	stdout, err := cmd.Output()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	busyPorts := extractPortsFromLsofOut(stdout)
-// 	cache := make(map[int]bool)
-// 	for _, el := range busyPorts {
-// 		cache[el] = Busy
-// 	}
-// 	return cache
-// }

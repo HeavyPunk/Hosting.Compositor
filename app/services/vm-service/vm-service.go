@@ -11,7 +11,6 @@ import (
 
 	ports_service "simple-hosting/compositor/app/services/ports-service"
 	"simple-hosting/compositor/app/settings"
-	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
 	tools_retry "simple-hosting/go-commons/tools/retry"
 	tools_sequence "simple-hosting/go-commons/tools/sequence"
 
@@ -23,7 +22,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-var config = file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
+var config = settings.GetServiceSettings()
 
 func Init() *VmServiceContext {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
@@ -129,6 +128,7 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 			return containerCreate(cli, request)
 		},
 		func(r container.CreateResponse, e error) bool {
+			fmt.Printf("Error when creating container: %s\n", err)
 			return r.ID != ""
 		},
 		config.Hypervisor.Services.ContainerCreateAttempts,

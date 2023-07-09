@@ -8,5 +8,8 @@ hypervisor:
     scripts-dir: ./
     ports-service:
       db-path: ./ports-storage.db
+      db-driver: sqlite3
+      min-port: 10001
+      max-port: 10999
     outbound-ip: 127.0.0.1
     container-create-attempts: 5

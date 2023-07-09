@@ -42,7 +42,11 @@ func CreateServer(c *gin.Context) {
 		Success: response.IsSuccess,
 		Error:   error_utils.GetErrorStringOrDefault(response.Error, ""),
 	}
-	c.JSON(http.StatusCreated, result)
+	if result.Success {
+		c.JSON(http.StatusCreated, result)
+	} else {
+		c.JSON(http.StatusInternalServerError, result)
+	}
 }
 
 func StartServer(c *gin.Context) {

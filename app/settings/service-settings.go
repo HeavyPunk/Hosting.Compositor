@@ -10,7 +10,10 @@ type ServiceSettings struct {
 		Services struct {
 			ScriptsDir   string `yaml:"scripts-dir"`
 			PortsService struct {
-				DbPath string `yaml:"db-path"`
+				DbPath   string `yaml:"db-path"`
+				DbDriver string `yaml:"db-driver"`
+				MinPort  int    `yaml:"min-port"`
+				MaxPort  int    `yaml:"max-port"`
 			} `yaml:"ports-service"`
 			OutboundIP              string `yaml:"outbound-ip"`
 			ContainerCreateAttempts uint   `yaml:"container-create-attempts"`
