@@ -1,6 +1,7 @@
 package controller_server
 
 import (
+	"fmt"
 	"net/http"
 	vm_service "simple-hosting/compositor/app/services/vm-service"
 	error_utils "simple-hosting/go-commons/tools/errors"
@@ -25,6 +26,7 @@ func GetServersList(c *gin.Context) {
 func CreateServer(c *gin.Context) {
 	var request CreateServerRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
+		fmt.Printf("Error binding request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -37,6 +39,9 @@ func CreateServer(c *gin.Context) {
 		VmAvailableRamBytes:  request.VmAvailableRamBytes,
 		VmAvailableSwapBytes: request.VmAvailableSwapBytes,
 	})
+	if !response.IsSuccess {
+		fmt.Printf("Error creating vm: %v", error_utils.GetErrorStringOrDefault(response.Error, ""))
+	}
 	result := CreateServerResponse{
 		VmId:    response.VmId,
 		Success: response.IsSuccess,
@@ -52,6 +57,7 @@ func CreateServer(c *gin.Context) {
 func StartServer(c *gin.Context) {
 	var request StartServerRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
+		fmt.Printf("Error binding request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -66,6 +72,10 @@ func StartServer(c *gin.Context) {
 		Success:      resp.Error == nil,
 		Error:        error_utils.GetErrorStringOrDefault(resp.Error, ""),
 	}
+	if !result.Success {
+		fmt.Printf("Error creating vm: %v", result.Error)
+	}
+
 	c.JSON(http.StatusOK, result)
 }
 

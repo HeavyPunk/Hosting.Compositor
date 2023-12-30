@@ -1,6 +1,6 @@
 app:
   port: 8080
-  configuration: release
+  configuration: debug
   api-key: D7gchfQQQaFQimhEPHKm9Fi86Jii
 
 hypervisor:

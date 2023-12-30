@@ -14,7 +14,10 @@ RUN echo \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
-RUN apt-get update
+RUN apt-get update -y
+
+# Need for the go sqline3 client to work
+RUN apt-get install build-essential -y
 
 EXPOSE 8080
 CMD /app/compositor

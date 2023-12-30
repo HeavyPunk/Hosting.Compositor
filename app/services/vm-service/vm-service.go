@@ -115,12 +115,12 @@ func (hypContext *VmServiceContext) CreateVm(request VmCreateRequest) VmCreateRe
 	fmt.Printf("Client created\n")
 	err := hypContext.pullImageFromOrigin(request.VmImage)
 	if err != nil {
+		fmt.Printf("Error when pulling image: %s\n", err)
 		return VmCreateResponse{
 			IsSuccess: false,
 			Error:     err,
 		}
 	}
-	fmt.Printf("Error when pulling image: %s\n", err)
 
 	delay, _ := time.ParseDuration("5s")
 	resp, err := tools_retry.Retry(
