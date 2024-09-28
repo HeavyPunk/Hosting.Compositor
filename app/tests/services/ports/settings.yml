@@ -2,7 +2,7 @@ hypervisor:
   services:
     scripts-dir: ./app/tools/scripts/
     ports-service:
-      db-path: ./ports-storage.db
+      db-path: ./ports.test.db
       db-driver: sqlite3
       min-port: 10001
       max-port: 10006

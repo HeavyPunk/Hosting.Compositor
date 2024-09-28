@@ -3,6 +3,7 @@ package port_storage_test
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"simple-hosting/compositor/app/settings"
 	ports_storage "simple-hosting/compositor/app/tools/ports-storage"
 	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
@@ -17,7 +18,14 @@ func getSettings() settings.ServiceSettings {
 }
 
 func prepareDatabase(config settings.ServiceSettings) error {
-	db, err := sql.Open(config.Hypervisor.Services.PortsService.DbDriver, config.Hypervisor.Services.PortsService.DbPath)
+  dbPath := config.Hypervisor.Services.PortsService.DbPath
+  os.Remove(dbPath)
+  file, err := os.Create(dbPath)
+  if err != nil {
+    return err
+  }
+  file.Close()
+  db, err := sql.Open(config.Hypervisor.Services.PortsService.DbDriver, dbPath)
 	if err != nil {
 		return err
 	}
@@ -32,14 +40,8 @@ func prepareDatabase(config settings.ServiceSettings) error {
 }
 
 func disposeDatabase(config settings.ServiceSettings) error {
-	db, err := sql.Open(config.Hypervisor.Services.PortsService.DbDriver, config.Hypervisor.Services.PortsService.DbPath)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	_, err = db.Exec("drop table ports")
-	return err
+  err := os.Remove(config.Hypervisor.Services.PortsService.DbPath)
+  return err 
 }
 
 func TestOccupyPort(t *testing.T) {
@@ -48,6 +50,13 @@ func TestOccupyPort(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+  defer func() {
+    err := disposeDatabase(settings)
+    if err != nil {
+      t.Error(err)
+    }
+  }()
 
 	storage := ports_storage.Init(settings)
 	channels := make(map[int]chan error)
@@ -76,10 +85,5 @@ func TestOccupyPort(t *testing.T) {
 		if err = <-channels[i]; err != nil {
 			t.Errorf("Error from thread %d: %v", i, err)
 		}
-	}
-
-	err = disposeDatabase(settings)
-	if err != nil {
-		t.Error(err)
 	}
 }
