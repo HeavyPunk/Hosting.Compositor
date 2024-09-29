@@ -1,58 +1,24 @@
 package port_storage_test
 
 import (
-	"database/sql"
 	"fmt"
-	"os"
-	"simple-hosting/compositor/app/settings"
 	ports_storage "simple-hosting/compositor/app/tools/ports-storage"
-	file_settings_provider "simple-hosting/go-commons/settings/file-settings-provider"
 	"testing"
+
+  ports_test_base "simple-hosting/compositor/app/tests/services/ports/base"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func getSettings() settings.ServiceSettings {
-	config := file_settings_provider.GetSetting[settings.ServiceSettings]("settings.yml")
-	return config
-}
-
-func prepareDatabase(config settings.ServiceSettings) error {
-  dbPath := config.Hypervisor.Services.PortsService.DbPath
-  os.Remove(dbPath)
-  file, err := os.Create(dbPath)
-  if err != nil {
-    return err
-  }
-  file.Close()
-  db, err := sql.Open(config.Hypervisor.Services.PortsService.DbDriver, dbPath)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`create table ports(
-			id integer not null primary key autoincrement,
-			port integer not null
-		);`)
-
-	return err
-}
-
-func disposeDatabase(config settings.ServiceSettings) error {
-  err := os.Remove(config.Hypervisor.Services.PortsService.DbPath)
-  return err 
-}
-
 func TestOccupyPort(t *testing.T) {
-	settings := getSettings()
-	err := prepareDatabase(settings)
+	settings := ports_test_base.GetSettings("settings.yml")
+	err := ports_test_base.PrepareDatabase(settings)
 	if err != nil {
 		t.Error(err)
 	}
 
   defer func() {
-    err := disposeDatabase(settings)
+    err := ports_test_base.DisposeDatabase(settings)
     if err != nil {
       t.Error(err)
     }
@@ -66,19 +32,19 @@ func TestOccupyPort(t *testing.T) {
 	}
 
 	for i := 0; i < opCount; i++ {
-		go func(chanNum int) {
+		go func(ch chan error) {
 			port, err := storage.GetRandomFreePort()
 			if err != nil {
-				channels[chanNum] <- err
+				ch <- err
 				return
 			}
 
 			if port <= 0 {
-				channels[chanNum] <- fmt.Errorf("returned port %d is out of range", port)
+				ch <- fmt.Errorf("returned port %d is out of range", port)
 				return
 			}
-			channels[chanNum] <- nil
-		}(i)
+			ch <- nil
+		}(channels[i])
 	}
 
 	for i := 0; i < opCount; i++ {
